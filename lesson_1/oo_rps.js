@@ -1,57 +1,52 @@
 const readline = require('readline-sync');
 
-function createPlayer(playerType) {
+function createPlayer() {
   return {
-    playerType,
     move: null,
+  };
+}
 
+function createComputer() {
+  let playerObject = createPlayer();
+
+  let computerObject = {
     choose () {
-      if (this.isHuman()) {
-        let choice;
-
-        while (true) {
-          console.log("Choose a move ('rock', 'paper' or 'scissors'):");
-          choice = readline.question();
-
-          if (['rock', 'paper', 'scissors'].includes(choice)) break;
-
-          console.log('Sorry, invalid choice.');
-        }
-
-        this.move = choice;
-      } else {
-        const choices = ['rock', 'paper', 'scissors'];
-        let randomIndex = Math.floor(Math.random() * choices.length);
-        this.move =  choices[randomIndex];
-      }
+      const choices = ['rock', 'paper', 'scissors'];
+      let randomIndex = Math.floor(Math.random() * choices.length);
+      this.move =  choices[randomIndex];
     },
-
-    isHuman () {
-      return this.playerType === 'human';
-    }
   };
+
+  return Object.assign(playerObject, computerObject);
 }
 
-function createMove() {
-  return {
-    // possible state: type of move (rock, paper or scissors)
+function createHuman() {
+  let playerObject = createPlayer();
+
+  let humanObject = {
+    choose () {
+      let choice;
+
+      while (true) {
+        console.log("Choose a move ('rock', 'paper' or 'scissors'):");
+        choice = readline.question();
+
+        if (['rock', 'paper', 'scissors'].includes(choice)) break;
+
+        console.log('Sorry, invalid choice.');
+      }
+
+      this.move = choice;
+    },
   };
+
+  return Object.assign(playerObject, humanObject);
 }
 
-function createRule() {
-  return {
-    // possible states?
-  };
-}
-
-let compare = function(move1, move2) {
-  // not yet implemented
-};
-
-// engine object that orchestrates the objects and implements procedural program flow
+// engine object that orchestrates the objects and implements program flow
 const RPSGame = {
-  human: createPlayer('human'),
-  computer: createPlayer('computer'),
+  human: createHuman(),
+  computer: createComputer(),
 
   displayWelcomeMessage() {
     console.log('Welcome to Rock, Paper, Scissors!');
@@ -85,7 +80,7 @@ const RPSGame = {
     console.log('Would you like to play again? (y/n)');
     let answer = readline.question();
 
-    return answer.toLowerCase()[0] === 'y`;
+    return answer.toLowerCase()[0] === 'y';
   },
 
   play () {
