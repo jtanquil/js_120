@@ -22,8 +22,12 @@ if (this.winningMoves[humanMove].includes(computerMove)) {
 }
 ```
 
-From a design perspective it makes sense for `winningMoves` to be a property of the `RPSGame` object since `RPSGame` is an object that implements the game logic, which includes the possible moves and the interactions between the possible moves. Also, since the `human` and `computer` objects are collaborators of the `RPSGame` object, having the possible moves available through the keys of `winningMoves` allows the `choose` method to 
+From a design perspective it makes sense for `winningMoves` to be a property of the `RPSGame` object since `RPSGame` is an object that implements the game logic, which includes the possible moves and the interactions between the possible moves. Also, since the `human` and `computer` objects are collaborators of the `RPSGame` object, having the possible moves available through the keys of `winningMoves` allows the `choose` method to work if the set of possible moves is changed.
 
 **Keep Track of a History of Moves**
 
-There are two relevant pieces of information regarding move history: the moves themselves and whether and the result of the round (win, loss or tie). A nested array, where the 1st element of each subarray is the move, and the 2nd element of each subarray is the result, can store this information. After every round, the `moveHistory` property of each player is updated with this information.
+There are two relevant pieces of information regarding move history: the moves themselves and whether and the result of the round (win, loss or tie). A nested array, where the 1st element of each subarray is the move, and the 2nd element of each subarray is the result, can store this information. After every round, the `moveHistory` property of each player is updated with this information, and the user is given the option to display the previous moves to console.
+
+**Adjust Computer Choices Based on History**
+
+Initially, the computer is equally likely to choose each choices - equivalently, each choice has the same weight (1). After each match, the weights on each choices are adjusted in the following way: for each choice, the number of wins, losses and ties are counted for each choice. Wins are worth 1 point, losses are worth -1 point, ties are worth 0 point. These weights of each choice are updated with these point values - for each choice, the updated weight is its point value, or is 1 (to ensure that it remains possible for the computer to make any choice, even losing ones). When the computer makes a choice, it randomly selects a choice from an array of possible choices. The weights determine how many copies of each choice appear in the array - choices with higher weights will appear more and have a higher probability of being chosen.

@@ -37,6 +37,7 @@ function createPlayer() {
 function createComputer(winningMoves) {
   let playerObject = createPlayer();
   let initialWeights = {};
+  let initialChoices = Object.keys(winningMoves);
 
   for (let key in winningMoves) {
     initialWeights[key] = 1;
@@ -44,18 +45,11 @@ function createComputer(winningMoves) {
 
   let computerObject = {
     weights: initialWeights,
+    choices: initialChoices,
 
     choose () {
-      const choices = [];
-
-      for (let key in this.weights) {
-        for (let length = 0; length < this.weights[key]; length += 1) {
-          choices.push(key);
-        }
-      }
-
-      let randomIndex = Math.floor(Math.random() * choices.length);
-      this.move =  choices[randomIndex];
+      let randomIndex = Math.floor(Math.random() * this.choices.length);
+      this.move =  this.choices[randomIndex];
     },
 
     getPoints () {
@@ -74,12 +68,24 @@ function createComputer(winningMoves) {
       }, {});
     },
 
+    updateChoices () {
+      this.choices = [];
+
+      for (let key in this.weights) {
+        for (let reps = 0; reps < this.weights[key]; reps += 1) {
+          this.choices.push(key);
+        }
+      }
+    },
+
     updateWeights () {
       let newPoints = this.getPoints();
 
       for (let key in this.weights) {
         this.weights[key] = Math.max(newPoints[key], 1) || this.weights[key];
       }
+
+      this.updateChoices();
     },
   };
 
@@ -91,13 +97,14 @@ function createHuman(winningMoves) {
 
   let humanObject = {
     choose () {
+      let possibleChoices = Object.keys(winningMoves);
       let choice;
 
       while (true) {
-        console.log(`Choose a move (${Object.keys(winningMoves).join(", ")}):`);
+        console.log(`Choose a move (${possibleChoices.join(", ")}):`);
         choice = readline.question();
 
-        if (Object.keys(winningMoves).includes(choice)) break;
+        if (possibleChoices.includes(choice)) break;
 
         console.log('Sorry, invalid choice.');
       }
@@ -116,16 +123,16 @@ function createRPSGame(winningMoves) {
     human: createHuman(winningMoves),
     computer: createComputer(winningMoves),
 
-    displayWelcomeMessage() {
+    displayWelcomeMessage () {
       console.log('Welcome to Rock, Paper, Scissors!');
       console.log('Each round is worth one point. First player to 5 points wins!');
     },
 
-    displayGoodbyeMessage() {
+    displayGoodbyeMessage () {
       console.log(`Thanks for playing Rock, Paper, Scissors!`);
     },
 
-    displayRoundWinner(roundWinner) {
+    displayRoundWinner (roundWinner) {
       let humanMove = this.human.getMove();
       let computerMove = this.computer.getMove();
 
@@ -141,18 +148,18 @@ function createRPSGame(winningMoves) {
       }
     },
 
-    displayScore() {
+    displayScore () {
       console.log(`Your score: ${this.human.getScore()}`);
       console.log(`Computer score: ${this.computer.getScore()}`);
     },
 
-    displayMatchWinner() {
+    displayMatchWinner () {
       let matchWinner = this.getMatchWinner();
 
       console.log(`${matchWinner === 'human' ? "You have" : "The computer has"} won the match with 5 points!`);
     },
 
-    displayMoveHistories() {
+    displayMoveHistories () {
       let playerMoves = this.human.getMoveHistory();
       let computerMoves = this.computer.getMoveHistory();
 
@@ -163,11 +170,15 @@ function createRPSGame(winningMoves) {
       }
     },
 
-    hasWinner() {
+    matchHasWinner () {
       return Math.max(this.human.getScore(), this.computer.getScore()) >= 5;
     },
 
-    getRoundWinner() {
+    getMatchWinner () {
+      return this.human.getScore() >= 5 ? "human" : "computer";
+    },
+
+    getRoundWinner () {
       let humanMove = this.human.getMove();
       let computerMove = this.computer.getMove();
 
@@ -180,23 +191,11 @@ function createRPSGame(winningMoves) {
       }
     },
 
-    getMatchWinner() {
-      if (this.human.getScore() >= 5) {
-        return 'human';
-      } else {
-        return 'computer';
-      }
+    updateScore (roundWinner) {
+      this[roundWinner].incrementScore();
     },
 
-    updateScore(roundWinner) {
-      if (roundWinner === 'human') {
-        this.human.incrementScore();
-      } else if (roundWinner === 'computer') {
-        this.computer.incrementScore();
-      }
-    },
-
-    updateMoveHistories(roundWinner) {
+    updateMoveHistories (roundWinner) {
       if (roundWinner === 'human') {
         this.human.updateMoveHistory("W");
         this.computer.updateMoveHistory("L");
@@ -209,12 +208,12 @@ function createRPSGame(winningMoves) {
       }
     },
 
-    resetMatch() {
+    resetMatch () {
       this.human.resetScore();
       this.computer.resetScore();
     },
 
-    getUserInput(input) {
+    getUserInput (input) {
       console.log(`${input} (y/n)`);
       let answer = readline.question().toLowerCase();
 
@@ -230,27 +229,34 @@ function createRPSGame(winningMoves) {
       this.displayWelcomeMessage();
 
       while (true) {
-        while (!this.hasWinner()) {
+        while (!this.matchHasWinner()) {
           this.human.choose();
           this.computer.choose();
 
           let roundWinner = this.getRoundWinner();
           this.displayRoundWinner(roundWinner);
-          this.updateScore(roundWinner);
+
+          if (roundWinner) {
+            this.updateScore(roundWinner);
+          }
           this.displayScore();
           this.updateMoveHistories(roundWinner);
         }
 
         this.displayMatchWinner();
         this.computer.updateWeights();
-        console.log(this.computer.weights);
+
         if (this.getUserInput("Would you like to see move histories?")) {
           this.displayMoveHistories();
         }
 
+        console.log(this.computer.choices);
+
         this.resetMatch();
 
         if (!this.getUserInput("Would you like to play again?")) break;
+
+        console.clear();
       }
 
       this.displayGoodbyeMessage();
