@@ -17,7 +17,10 @@ function createPlayer() {
     },
 
     updateMoveHistory (result) {
-      this.moveHistory.push([this.getMove(), result]);
+      this.moveHistory.push({
+        move: this.move,
+        result: result,
+      });
     },
 
     getScore () {
@@ -54,14 +57,14 @@ function createComputer(winningMoves) {
 
     getPoints () {
       return this.getMoveHistory().reduce((weights, round) => {
-        if (!weights.hasOwnProperty(round[0])) {
-          weights[round[0]] = 0;
+        if (!weights.hasOwnProperty(round.result)) {
+          weights[round.result] = 0;
         }
 
-        if (round[1] === "W") {
-          weights[round[0]] += 1;
-        } else if (round[1] === "L") {
-          weights[round[0]] -= 1;
+        if (round.result === "W") {
+          weights[round.move] += 1;
+        } else if (round.result === "L") {
+          weights[round.move] -= 1;
         }
 
         return weights;
@@ -102,7 +105,7 @@ function createHuman(winningMoves) {
 
       while (true) {
         console.log(`Choose a move (${possibleChoices.join(", ")}):`);
-        choice = readline.question();
+        choice = readline.question().toLowerCase();
 
         if (possibleChoices.includes(choice)) break;
 
@@ -117,15 +120,30 @@ function createHuman(winningMoves) {
 }
 
 // engine object that orchestrates the objects and implements program flow
-function createRPSGame(winningMoves) {
+function createRPSGame() {
+  const winningMoves = {
+    rock: ['scissors', 'lizard'],
+    paper: ['rock', 'spock'],
+    scissors: ['paper', 'lizard'],
+    spock: ['scissors', 'rock'],
+    lizard: ['paper', 'spock'],
+  };
+  const winningScore = 5;
+
   return {
     winningMoves,
+    winningScore,
     human: createHuman(winningMoves),
     computer: createComputer(winningMoves),
+
+    displayLine () {
+      console.log("------------------------------------");
+    },
 
     displayWelcomeMessage () {
       console.log('Welcome to Rock, Paper, Scissors!');
       console.log('Each round is worth one point. First player to 5 points wins!');
+      this.displayLine();
     },
 
     displayGoodbyeMessage () {
@@ -151,6 +169,7 @@ function createRPSGame(winningMoves) {
     displayScore () {
       console.log(`Your score: ${this.human.getScore()}`);
       console.log(`Computer score: ${this.computer.getScore()}`);
+      this.displayLine();
     },
 
     displayMatchWinner () {
@@ -163,19 +182,25 @@ function createRPSGame(winningMoves) {
       let playerMoves = this.human.getMoveHistory();
       let computerMoves = this.computer.getMoveHistory();
 
+      this.displayLine();
       console.log("Round | Player   | Computer");
 
       for (let index = 0; index < playerMoves.length; index += 1) {
-        console.log(`${String(index + 1).padStart(3).padEnd(5)} | ${playerMoves[index][0].padEnd(8)} | ${computerMoves[index][0]}`);
+        console.log(`${String(index + 1).padStart(3).padEnd(5)} | ${playerMoves[index].move.padEnd(8)} | ${computerMoves[index].move}`);
       }
+
+      this.displayLine();
     },
 
     matchHasWinner () {
-      return Math.max(this.human.getScore(), this.computer.getScore()) >= 5;
+      let playerScore = this.human.getScore();
+      let computerScore = this.computer.getScore();
+
+      return Math.max(playerScore, computerScore) >= this.winningScore;
     },
 
     getMatchWinner () {
-      return this.human.getScore() >= 5 ? "human" : "computer";
+      return this.human.getScore() >= this.winningScore ? "human" : "computer";
     },
 
     getRoundWinner () {
@@ -250,8 +275,6 @@ function createRPSGame(winningMoves) {
           this.displayMoveHistories();
         }
 
-        console.log(this.computer.choices);
-
         this.resetMatch();
 
         if (!this.getUserInput("Would you like to play again?")) break;
@@ -264,14 +287,6 @@ function createRPSGame(winningMoves) {
   };
 }
 
-const winningMoves =  {
-  rock: ['scissors', 'lizard'],
-  paper: ['rock', 'spock'],
-  scissors: ['paper', 'lizard'],
-  spock: ['scissors', 'rock'],
-  lizard: ['paper', 'spock'],
-};
-
-let RPSGame = createRPSGame(winningMoves);
+let RPSGame = createRPSGame();
 
 RPSGame.play();
