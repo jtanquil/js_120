@@ -106,3 +106,156 @@
             - even in this case, `instanceof` will still return the correct result
       - **overriding the prototype**: it is possible to **override** methods inherited from the prototype by defining methods with the same name on an object; due to how property access works up the prototype chain, accessing that method will access the object's own method before accessing the method defined in the prototype
           - allows for flexible customization of object behavior
+      - **design pattern**: methods that return the caller allow for chainable invocations/property accesses
+      - **scope-safe constructors**: constructor functions that return the same object whether or not they are called with `new`
+          - implementation: use `this instanceof ConstructorName` => returns `true` if `this` is set to the object created by `ConstructorName` (so `ConstructorName` was called with `new`), `false` otherwise (if `ConstructorName` was called as a normal function)
+          - set properties as normal if the constructor was called with `new`, return `new ConstructorName(...)` otherwise
+          - most of JavaScript's built-in constructors like `Object`, `RegExp`, `Array` are scope-safe; `String` is not
+            - should still call constructors with `new`
+- static and instance methods
+    - individual objects of a specific data type are **instances** of that type
+        - can apply to objects created via constructors, factory functions; etc
+    - **instance properties**: properties that belong to a specific instance of an object; typically properties that differ between instances of objects
+    - **instance methods**: methods that operate on individual instances
+        - typically stored in an object's prototype, and are called by an instance of the object/will operate on an instance's properties
+        - methods might be stored in an object's prototype but it's not recommended to call from there (ex/use `dog.bark()` instead of `dog.prototype.bark()`) due to the possibility of instances of an object overriding behavior
+            - any method defined in any prototype in the prototype chain of an object can be considered an instance method
+            - can't use the constructor to call instance methods
+    - **static properties**: properties defined and accessed directly on the constructor, instead of an instance
+        - belong to the type (ex/`Dog`) rather than an instance or the prototype object (`dog`)
+    - **static methods**: methods defined and accessed directly on the constructor
+        - ex/`Object.assign`, `Array.isArray`, `Date.now`
+    - **idea**: instance properties/methods reflect the state/behavior of instances of an object, static properties/methods reflect the state/behavior of an entire type of object
+- built-in constructors
+    - `Array`: scope-safe, also creates the same object as equivalent w/array literal syntax
+        - takes as arguments either:
+            - no arguments: `new Array(); // []`
+            - a comma-separated list of values: `new Array(1, 2); // [1, 2]`
+                - bc of the next case, passing exactly 1 number won't work; any other type of value will work though: `new Array("a"); // ["a"]`
+            - one nonnegative whole number: `new Array(3); // [<3 empty items>]`
+                - if the number is negative or not whole, will throw a `RangeError`
+                - `Array.prototype.fill`: takes an argument, replaces the elements of the caller with that value (in place), returns a reference to the caller
+                    - optional `start/end` index arguments, defaults are `0` and `array.length`
+        - `Array.prototype`: all arrays inherit from `Array.prototype`; array instance methods are all defined on it
+        - static methods: defined on `Array` constructor
+            - `Array.isArray`: takes a value as an argument, returns `true` if it is an array, `false` otherwise 
+                - use to determine if something is an array since `typeof` can't distinguish between arrays and objects
+            - `Array.from`: takes an array-like object as an argument and returns a new array with equivalent element values
+                - **array-like object**: any object that has a `length` property
+                - possible implementation: given an object `obj`, iterate from `0` to `obj.length`, for each `idx` add `obj[idx]` to an output array, return that array
+                    - this will work with strings since bracket indexing works on strings
+                - **why**: some functions and methods return array-like objects that can be converted to arrays (ex/node lists from the DOM)
+    - `Object`: also scope-safe, returns an empty object `{}`
+        - `Object.prototype`: all objects created with `Object` constructor or literal syntax inherit from this; almost all objects do (includes prototype objects of constructors)
+            - relevant instance methods: `getPrototypeOf`, `setPrototypeOf`, `toString` (typically overridden, by default just returns `[object Object]`)
+        - relevant static methods: `Object.assign`, `Object.create`, `Object.entries`, `Object.freeze`, `Object.isFrozen`, `Object.keys`, `Object.values`
+    - `Date`: creates a `Date` object which represents a specific date and time. **not scope-safe**
+        - takes as arguments:
+            - no arguments: returns a `Date` object representing the creation date/time of the object
+            - various string arguments: check MDN, common examples:
+                - month/day/year: `new Date("May 1, 1983")`
+                - month/day/year w/time: `new Date("May 1, 1983 05:03 am")
+                    - time zones are messy, again check MDN
+        - `Date.prototype`: relevant instance methods are
+            - `Date.prototype.toString`: returns a string representation of the date (verbose, check MDN)
+            - `Date.prototype.getFullYear`: returns the year of the caller as a number in YYYY format
+            - `Date.prototype.getDay`: returns the day of the week of the caller as a number between `0` (Sunday) and `6` (Saturday)
+    - `String`: takes a string and creates a `String` object from the argument
+        - **this is not a primitive value like a (lowercase) string**: `"abc" === new String("abc"); // false`
+        - **not scope-safe**: without `new`, `String` will return a primitive value: `"abc" === String("abc"); // true`
+        - **why**: JavaScript has two types of strings - string primitives (created with string literal syntax or invoking `String` without `new`) and `String` objects (created with `String` invoked with `new`)
+            - despite being primitive values, we can access properties or methods of string primitives because JavaScript **wraps** the primitive in a `String` object behind the scenes, then returns a string primitive afterwards
+        - **general rule**: avoid creating `String` objects explicitly; can cause problems distinguishing between `String` objects and string primitives
+            - can use `String.prototype.valueOf()` to retrieve the value of a `String` object as a primitive
+    - `Number`/`Boolean`: work in the same way as `String` constructor
+        - **neither are scope-safe**: without `new` they will return primitives of the corresponding type
+        - otherwise, will return `Number` or `Boolean` objects
+        - similarly, JavaScript wraps primitive numbers and booleans to access methods and properties, and returns primitives afterward
+        - similarly, avoid explicitly creating these objects
+    - **extending primitives**: can extend primitives of built-in types by adding properties or methods to their `prototype` property, but not recommended
+    - **borrowing `Array` methods for `String`s**: since functions are first-class, they can be accessed as properties of a constructor and called on a different type of object via explicit context setting:
+        - by default, an array instance method in `Array.prototype` would have `this` set to either `Array.prototype` or `global`, but using `call` or `apply` can invoke it using a different object as a context, effectively calling it on that object
+        - relevant example: using `Array` instance methods to manipulate strings:
+            ```javascript
+            let string = "test";
+            Array.prototype.map.call(string, (char) => char.toUpperCase()); // ["T", "E", "S", "T"]
+            [1, 2].map.call(string, (char) => char + char); // also works, returns ["tt", "ee", "ss", "tt"]
+            ```
+            - **idea**: in this case `string` is set as the context for `Array.prototype.map` (behind the scenes, JavaScript wraps `string` in a `String` object), then the call iterates through the indices of `string` as it would an array, then returns an array
+            - **caveat**: this works because the implementation of methods like `map`, `filter`, etc iterate through the indices of the caller, which you can still do with strings
+                - **cannot do this with all `Array` methods**: for instance, methods that mutate the caller like `push`:
+                    ```javascript
+                    let test = "test";
+                    [].push.call(test, " test 2"); // throws TypeError
+                    ```
+                - this throws a `TypeError` by attempting to mutate a string
+- classes
+    - introduced in ES6
+    - **syntactic sugar**: syntax designed to be easier to read/use, makes it easier for programmers migrating from other OOP languages, more familiar way to create constructors/prototypes
+    - example: **constructor syntax**
+        ```javascript
+        function Test(test) {
+          this.test = test;
+        }
+
+        Test.prototype.testFunc = function() {
+          console.log(this.test);
+        };
+
+        let t = new Test("hi");
+        console.log(typeof Test); // function
+        console.log(t instanceof Test); // true
+        console.log(t.constructor); // [Function: Test]
+        console.log(t.testFunc()); // "hi"
+        ```
+    - **class syntax**: uses a **class declaration** which begins with the `class` keyword, followed by the name of the class
+        ```javascript
+        class Test {
+          constructor(test) {
+            this.test = test;
+          }
+
+          testFunc() {
+            console.log(this.test);
+          }
+        }
+
+        let t = new Test("hi");
+        console.log(typeof Test); // function
+        console.log(t instanceof Test); // true
+        console.log(t.constructor); // [class Test]
+        console.log(t.testFunc()); // "hi"
+        ```
+    - `class` syntax: similar to concise object method definition for object literals, except no commas between properties
+        - `constructor` method plays the same role as the constructor function in the constructor syntax, but is written as a standalone function instead
+        - other methods are added as properties of `ClassName.prototype` (unless they start with the `static` keyword, see below)
+    - **constructor syntax vs class syntax**: they are functionally the same, but with small differences:
+        - with class syntax, you **must use `new`** to call the constructor, otherwise a `TypeError` is raised
+        - the `constructor` property of the returned object point to the constructor/`class`, respectively - the constructor is logged as `[Function: ConstructorName]` and the class is logged as `[class ClassName]`
+            - implementation dependent, not really relevant
+        - **note**: `typeof ClassName` logs `function`, so classes are functions **and are therefore first-class**
+    - **class expressions**: similar to function definition vs function declaration - any class definition that **doesn't** begin with the `class` keyword is a class expression
+        - can be assigned to variables, passed as arguments to functions, returned from functions, used in expressions etc. just like function expressions
+    - **static methods and properties**: in constructor syntax, these are defined directly as properties of the constructor; with class syntax, use the `static` keyword before static properties/methods:
+        ```javascript
+        class Test {
+          // ...
+
+          // same as Test.testStaticMethod = function... in constructor syntax
+          static testStaticMethod() {
+            return "hi";
+          }
+
+          // same as Test.description = ... in constructor syntax
+          static description = "this is a description";
+        }
+
+        console.log(Test.testStaticMethod()); // "hi";
+        console.log(Test.description); // "this is a description"
+        ```
+        - static properties are a relatively new addition to JavaScript, not fully supported as of late 2020
+            - check MDN to check browser/node compatibility
+            - if they don't work, just add directly to the class as a property like w/constructor syntax
+                ```javascript
+                Test.description = "...";
+                ```
