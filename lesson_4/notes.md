@@ -56,6 +56,8 @@
                 };
                 ```
                 - when `Subtype` is invoked with `new`, the context is set to the object created by `Subtype`, which is the explicit context set by the invocation of `Supertype` via `call`
+      - **subtypes and `instanceof`**: per MDN, `obj instanceof Constructor` returns `true` if and only if `Constructor.prototype` appears in the prototype chain of `obj`
+          - i.e., if `obj` is an instance of `SubConstructor`, which is a subtype of `Constructor`, then `obj instanceof Constructor` returns `true` because the prototype chain of `obj` is `obj => SubConstructor.prototype => ... => Constructor.prototype => ... => Object.prototype => null`
 - prototypical inheritance vs psuedo-classical inheritance
     - **prototypical inheritance**: also called prototypical delegation or object inheritance; works on one object at a time, refers to the form of inheritance implemented with an object's `[[Prototype]]` property and an object can delegate property/method access to its prototype
     - **psuedo-classical inheritance**: also called constructor inheritance; refers to when a constructor's prototype (`Constructor.prototype` property) inherits from another constructor's prototype (i.e. if `Subtype.prototype` inherits from `Supertype.prototype`)

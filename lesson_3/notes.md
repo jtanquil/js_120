@@ -65,6 +65,7 @@
         - **syntax**: `obj instanceof ConstructorName`, returns `true` if `obj` was an object created by `ConstructorName`, `false` otherwise
         - **compare to objects created by factory functions**: no way to tell whether an object was created by a factory function, or what "type" of object it was if it was created this way
         - the `new` operator causes the constructor invocation to return an object with additional information that ties it to the constructor that created that object, which is used by `instanceof` to determine whether an object was created by that constructor
+        - `instanceof` requires the right argument to have a `prototype` property (such as a function object), so it generally needs to be a constructor function or class
     - **design pattern**: passing a plain object (key/value pairs) to a constructor and using `Object.assign(this, obj)` to mass assign properties to the constructed object instead of assigning many parameters individually
     - **constructors with prototypes**
         - **question**: what is the prototype of an object created by a constructor? how do we modify it?
