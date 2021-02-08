@@ -77,7 +77,7 @@ class Board {
   }
 
   displayWithClear() {
-    console.clear();
+    //console.clear();
     console.log("");
     console.log("");
     this.display();
@@ -210,14 +210,34 @@ class TTTGame {
   }
 
   computerMoves() {
-    let validChoices = this.board.unusedSquares();
-    let choice;
+    let squaresToDefend = this.getSquaresToDefend();
+    let validChoices;
 
-    do {
-      choice = Math.floor((9 * Math.random()) + 1).toString();
-    } while (!validChoices.includes(choice));
+    if (squaresToDefend.length > 0) {
+      validChoices = squaresToDefend;
+    } else {
+      validChoices = this.board.unusedSquares();
+    }
+
+    let choiceIndex =
+      Math.floor(validChoices.length * Math.random());
+    let choice = validChoices[choiceIndex];
 
     this.board.markSquareAt(choice, this.computer.getMarker());
+  }
+
+  getSquaresToDefend() {
+    const isVulnurableRow =
+      (row) => this.board.countMarkersFor(this.human, row) === 2 &&
+        this.board.countMarkersFor(this.computer, row) === 0;
+
+    const getEmptySquare =
+      (row) => row.find((square) =>
+        this.board.squares[square].isUnused(), this);
+
+    return TTTGame.POSSIBLE_WINNING_ROWS.filter((row) =>
+      isVulnurableRow(row))
+      .map((row) => getEmptySquare(row));
   }
 
   gameOver() {
