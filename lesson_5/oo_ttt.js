@@ -1,6 +1,9 @@
 let readline = require("readline-sync");
 
 class Square {
+  static UNUSED_SQUARE = " ";
+  static HUMAN_MARKER = "X";
+  static COMPUTER_MARKER = "O";
   constructor(marker = Square.UNUSED_SQUARE) {
     this.marker = marker;
   }
@@ -20,13 +23,15 @@ class Square {
   getMarker() {
     return this.marker;
   }
+
+  static test() {
+    console.log("hi");
+  }
 }
 
-Square.UNUSED_SQUARE = " ";
-Square.HUMAN_MARKER = "X";
-Square.COMPUTER_MARKER = "O";
-
 class Board {
+  static MIDDLE_SQUARE = "5";
+
   constructor() {
     this.squares = {};
     for (let counter = 1; counter <= 9; ++counter) {
@@ -84,8 +89,6 @@ class Board {
   }
 }
 
-Board.MIDDLE_SQUARE = "5";
-
 class Player {
   constructor(marker) {
     this.marker = marker;
@@ -118,6 +121,18 @@ class Computer extends Player {
 }
 
 class TTTGame {
+  static POSSIBLE_WINNING_ROWS = [
+    [ "1", "2", "3" ],            // top row of board
+    [ "4", "5", "6" ],            // center row of board
+    [ "7", "8", "9" ],            // bottom row of board
+    [ "1", "4", "7" ],            // left column of board
+    [ "2", "5", "8" ],            // middle column of board
+    [ "3", "6", "9" ],            // right column of board
+    [ "1", "5", "9" ],            // diagonal: top-left to bottom-right
+    [ "3", "5", "7" ],            // diagonal: bottom-left to top-right
+  ];
+  static WINNING_SCORE = 3;
+  
   constructor() {
     this.board = new Board();
     this.human = new Human();
@@ -204,6 +219,21 @@ class TTTGame {
     console.log(`The match is over! ${matchWinnerString} won the match!`);
   }
 
+  getHumanPrompt(prompt, validChoices) {
+    let choice;
+
+    while (true) {
+      choice = readline.question(`${prompt} (${this.joinOr(validChoices)}): `).toLowerCase();
+
+      if (validChoices.includes(choice)) break;
+
+      console.log("Sorry, that's not a valid choice.");
+      console.log("");
+    }
+
+    return choice;
+  }
+
   joinOr(arr, delimiter = ', ', lastElementDelimiter = 'or') {
     let arrCopy = arr.slice();
 
@@ -221,40 +251,11 @@ class TTTGame {
     }
   }
 
-  getHumanPrompt(prompt, validChoices) {
-    let choice;
-
-    while (true) {
-      choice = readline.question(`${prompt} (${this.joinOr(validChoices)}): `);
-
-      if (validChoices.includes(choice)) break;
-
-      console.log("Sorry, that's not a valid choice.");
-      console.log("");
-    }
-
-    return choice;
-  }
-
   playAgain() {
     let playAgainChoice =
       this.getHumanPrompt("Would you like to play again?", ["y", "n"]);
 
     return playAgainChoice === "y";
-  }
-
-  alternateStartingPlayer() {
-    this.startingPlayer =
-      this.startingPlayer === this.human ? this.computer : this.human;
-  }
-
-  alternateCurrentPlayer() {
-    this.currentPlayer =
-      this.currentPlayer === this.human ? this.computer : this.human;
-  }
-
-  resetCurrentPlayer() {
-    this.currentPlayer = this.startingPlayer;
   }
 
   playerMoves(player) {
@@ -272,46 +273,43 @@ class TTTGame {
   }
 
   computerMoves() {
-    let squaresToAttack = this.getSquaresToAttack();
-    let squaresToDefend = this.getSquaresToDefend();
-    let validChoices;
-
-    if (squaresToAttack.length > 0) {
-      validChoices = squaresToAttack;
-    } else if (squaresToDefend.length > 0) {
-      validChoices = squaresToDefend;
-    } else {
-      validChoices = this.board.unusedSquares();
-    }
-
-    let choiceIndex =
-      Math.floor(validChoices.length * Math.random());
-    // pick square 5 (middle square) if it's empty
-    let choice = validChoices.includes(Board.MIDDLE_SQUARE) ?
-      Board.MIDDLE_SQUARE : validChoices[choiceIndex];
+    let possibleMoves = this.getPossibleComputerMoves();
+    let choice = this.selectComputerMove(possibleMoves);
 
     this.board.markSquareAt(choice, this.computer.getMarker());
   }
 
-  isVulnurableRow(row, attacker, defender) {
-    return this.board.countMarkersFor(attacker, row) === 2 &&
-      this.board.countMarkersFor(defender, row) === 0;
+  getPossibleComputerMoves() {
+    let squaresToAttack = this.getSquaresToAttack();
+    let squaresToDefend = this.getSquaresToDefend();
+
+    if (squaresToAttack.length > 0) {
+      return squaresToAttack;
+    } else if (squaresToDefend.length > 0) {
+      return squaresToDefend;
+    } else {
+      return this.board.unusedSquares();
+    }
   }
 
-  getEmptySquare(row) {
-    return row.find((square) =>
-      this.board.squares[square].isUnused(), this);
+  selectComputerMove(possibleMoves) {
+    if (possibleMoves.includes(Board.MIDDLE_SQUARE)) {
+      return Board.MIDDLE_SQUARE;
+    } else {
+      let moveIndex = Math.floor(possibleMoves.length * Math.random());
+      return possibleMoves[moveIndex];
+    }
   }
 
   getSquaresToDefend() {
-    return this.getPossibleMoves("defense");
+    return this.getVulnurableRows("defense");
   }
 
   getSquaresToAttack() {
-    return this.getPossibleMoves("offense");
+    return this.getVulnurableRows("offense");
   }
 
-  getPossibleMoves(moveType) {
+  getVulnurableRows(moveType) {
     let attacker = moveType === "offense" ? this.computer : this.human;
     let defender = moveType === "defense" ? this.computer : this.human;
 
@@ -320,6 +318,15 @@ class TTTGame {
       .map((row) => this.getEmptySquare(row));
   }
 
+  isVulnurableRow(row, attacker, defender) {
+    return this.board.countMarkersFor(attacker, row) === row.length - 1 &&
+      this.board.countMarkersFor(defender, row) === 0;
+  }
+
+  getEmptySquare(row) {
+    return row.find((square) =>
+      this.board.squares[square].isUnused(), this);
+  }
   gameOver() {
     return this.board.isFull() || this.someoneWon();
   }
@@ -350,19 +357,21 @@ class TTTGame {
   hasMatchWinner() {
     return !!this.getMatchWinner();
   }
-}
 
-TTTGame.POSSIBLE_WINNING_ROWS = [
-  [ "1", "2", "3" ],            // top row of board
-  [ "4", "5", "6" ],            // center row of board
-  [ "7", "8", "9" ],            // bottom row of board
-  [ "1", "4", "7" ],            // left column of board
-  [ "2", "5", "8" ],            // middle column of board
-  [ "3", "6", "9" ],            // right column of board
-  [ "1", "5", "9" ],            // diagonal: top-left to bottom-right
-  [ "3", "5", "7" ],            // diagonal: bottom-left to top-right
-];
-TTTGame.WINNING_SCORE = 3;
+  alternateStartingPlayer() {
+    this.startingPlayer =
+      this.startingPlayer === this.human ? this.computer : this.human;
+  }
+
+  alternateCurrentPlayer() {
+    this.currentPlayer =
+      this.currentPlayer === this.human ? this.computer : this.human;
+  }
+
+  resetCurrentPlayer() {
+    this.currentPlayer = this.startingPlayer;
+  }
+}
 
 let game = new TTTGame();
 game.play();
