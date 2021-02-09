@@ -84,6 +84,8 @@ class Board {
   }
 }
 
+Board.MIDDLE_SQUARE = "5";
+
 class Player {
   constructor(marker) {
     this.marker = marker;
@@ -224,7 +226,9 @@ class TTTGame {
 
     let choiceIndex =
       Math.floor(validChoices.length * Math.random());
-    let choice = validChoices[choiceIndex];
+    // pick square 5 (middle square) if it's empty
+    let choice = validChoices.includes(Board.MIDDLE_SQUARE) ?
+      Board.MIDDLE_SQUARE : validChoices[choiceIndex];
 
     this.board.markSquareAt(choice, this.computer.getMarker());
   }
@@ -240,14 +244,19 @@ class TTTGame {
   }
 
   getSquaresToDefend() {
-    return TTTGame.POSSIBLE_WINNING_ROWS.filter((row) =>
-      this.isVulnurableRow(row, this.human, this.computer))
-      .map((row) => this.getEmptySquare(row));
+    return this.getPossibleMoves("defense");
   }
 
   getSquaresToAttack() {
+    return this.getPossibleMoves("offense");
+  }
+
+  getPossibleMoves(moveType) {
+    let attacker = moveType === "offense" ? this.computer : this.human;
+    let defender = moveType === "defense" ? this.computer : this.human;
+
     return TTTGame.POSSIBLE_WINNING_ROWS.filter((row) =>
-      this.isVulnurableRow(row, this.computer, this.human))
+      this.isVulnurableRow(row, attacker, defender))
       .map((row) => this.getEmptySquare(row));
   }
 
