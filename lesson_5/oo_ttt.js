@@ -210,10 +210,13 @@ class TTTGame {
   }
 
   computerMoves() {
+    let squaresToAttack = this.getSquaresToAttack();
     let squaresToDefend = this.getSquaresToDefend();
     let validChoices;
 
-    if (squaresToDefend.length > 0) {
+    if (squaresToAttack.length > 0) {
+      validChoices = squaresToAttack;
+    } else if (squaresToDefend.length > 0) {
       validChoices = squaresToDefend;
     } else {
       validChoices = this.board.unusedSquares();
@@ -226,18 +229,26 @@ class TTTGame {
     this.board.markSquareAt(choice, this.computer.getMarker());
   }
 
+  isVulnurableRow(row, attacker, defender) {
+    return this.board.countMarkersFor(attacker, row) === 2 &&
+      this.board.countMarkersFor(defender, row) === 0;
+  }
+
+  getEmptySquare(row) {
+    return row.find((square) =>
+      this.board.squares[square].isUnused(), this);
+  }
+
   getSquaresToDefend() {
-    const isVulnurableRow =
-      (row) => this.board.countMarkersFor(this.human, row) === 2 &&
-        this.board.countMarkersFor(this.computer, row) === 0;
-
-    const getEmptySquare =
-      (row) => row.find((square) =>
-        this.board.squares[square].isUnused(), this);
-
     return TTTGame.POSSIBLE_WINNING_ROWS.filter((row) =>
-      isVulnurableRow(row))
-      .map((row) => getEmptySquare(row));
+      this.isVulnurableRow(row, this.human, this.computer))
+      .map((row) => this.getEmptySquare(row));
+  }
+
+  getSquaresToAttack() {
+    return TTTGame.POSSIBLE_WINNING_ROWS.filter((row) =>
+      this.isVulnurableRow(row, this.computer, this.human))
+      .map((row) => this.getEmptySquare(row));
   }
 
   gameOver() {
