@@ -132,7 +132,7 @@ class TTTGame {
     [ "3", "5", "7" ],            // diagonal: bottom-left to top-right
   ];
   static WINNING_SCORE = 3;
-  
+
   constructor() {
     this.board = new Board();
     this.human = new Human();
