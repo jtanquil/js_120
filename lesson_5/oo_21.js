@@ -1,9 +1,6 @@
 const readline = require('readline-sync');
 
 class Card {
-  static SUITS = ["Diamonds", "Clubs", "Hearts", "Spades"];
-  static RANKS =
-    ["2", "3", "4", "5", "6", "7", "8", "9", "10", "Jack", "Queen", "King", "Ace"];
   static ACE = "Ace";
 
   constructor(rank, suit) {
@@ -88,6 +85,10 @@ class Hand {
 }
 
 class Deck {
+  static SUITS = ["Diamonds", "Clubs", "Hearts", "Spades"];
+  static RANKS =
+    ["2", "3", "4", "5", "6", "7", "8", "9", "10", "Jack", "Queen", "King", "Ace"];
+
   constructor() {
     this.cards = [];
 
@@ -108,9 +109,9 @@ class Deck {
   }
 
   resetDeck() {
-    for (let suitIndex = 0; suitIndex < Card.SUITS.length; suitIndex += 1) {
-      for (let rankIndex = 0; rankIndex < Card.RANKS.length; rankIndex += 1) {
-        let card = new Card(Card.RANKS[rankIndex], Card.SUITS[suitIndex]);
+    for (let suitIndex = 0; suitIndex < Deck.SUITS.length; suitIndex += 1) {
+      for (let rankIndex = 0; rankIndex < Deck.RANKS.length; rankIndex += 1) {
+        let card = new Card(Deck.RANKS[rankIndex], Deck.SUITS[suitIndex]);
         this.cards.push(card);
       }
     }
@@ -211,8 +212,9 @@ class TwentyOneGame {
     this.deck = new Deck();
   }
 
-  play() {
+  playMatch() {
     this.displayStartMessage();
+    this.displayRules();
 
     while (true) {
       this.playGame();
@@ -245,11 +247,20 @@ class TwentyOneGame {
 
   displayStartMessage() {
     console.log("Welcome to Twenty One!");
+    console.log("");
+  }
+
+  displayRules() {
+    console.log("Betting rules:");
+    console.log(`You start with $${HumanPlayer.STARTING_MONEY}. Winning a game is worth $1, losing a game costs $1.`);
+    console.log(`You lose the match if you reach $${HumanPlayer.MIN_MONEY}. You win the match if you reach $${HumanPlayer.MAX_MONEY}.`);
+    console.log("");
   }
 
   displayHands(showDealerHand = false) {
     this.displayHand(this.player);
     this.displayHand(this.dealer, showDealerHand);
+    console.log("");
   }
 
   displayHand(player, showHand = true) {
@@ -269,6 +280,7 @@ class TwentyOneGame {
   }
 
   displayResults(winner) {
+    console.log("");
     console.log("Results:");
     this.displayHands(true);
 
@@ -279,6 +291,7 @@ class TwentyOneGame {
     }
 
     console.log(this.player.moneyToString());
+    console.log("");
   }
 
   displayGoodbyeMessage() {
@@ -359,12 +372,15 @@ class TwentyOneGame {
     return choice;
   }
 
-  hit(player) {
-    this.deck.dealTo(player);
+  hit(participant) {
+    this.deck.dealTo(participant);
   }
 
   takeDealerTurn() {
+    console.log("Dealer's turn.");
+
     while (true) {
+      console.log("");
       this.displayHand(this.dealer);
 
       if (!this.dealer.hitLimit()) {
@@ -412,4 +428,4 @@ class TwentyOneGame {
 
 let game = new TwentyOneGame();
 
-game.play();
+game.playMatch();
